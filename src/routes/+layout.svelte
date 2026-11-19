@@ -11,11 +11,13 @@
 	import '@fontsource/caveat/600.css';
 	import '@fontsource/caveat/700.css';
 	import '../app.css';
-	import { onNavigate } from '$app/navigation';
+	import { afterNavigate, onNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import Lenis from 'lenis';
 	import gsap from 'gsap';
 	import { ScrollTrigger } from 'gsap/ScrollTrigger';
 	import { Cake, Phone, ShoppingBag } from '@lucide/svelte';
+	import { MotionConfig } from '@humanspeak/svelte-motion';
 	import Header from '#lib/components/Header.svelte';
 	import Footer from '#lib/components/Footer.svelte';
 	import Newsletter from '#lib/components/Newsletter.svelte';
@@ -95,18 +97,49 @@
 		};
 	});
 
-	// Reveal-on-scroll: transform + opacity only, 300ms, respects reduced motion via CSS.
+	// Scroll reveals via GSAP ScrollTrigger: fade + 16px rise, once, stagger
+	// 60ms on grids. The layout stays mounted across client-side
+	// navigations, so re-batch after every navigation — otherwise .reveal
+	// sections on a newly visited page would stay invisible forever.
+	// Reduced motion: everything visible immediately, no ScrollTrigger.
+	// (Svelte transitions ignore CSS reduced-motion, so the check is in code.)
+	let revealTriggers: ScrollTrigger[] = [];
+	function setupReveals() {
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
+			return;
+		}
+		gsap.registerPlugin(ScrollTrigger);
+		// Kill the previous page's batch triggers (their elements are gone).
+		revealTriggers.forEach((t) => t.kill());
+		revealTriggers = ScrollTrigger.batch('.reveal:not(.is-visible)', {
+			start: 'top 88%',
+			once: true,
+			onEnter: (els) => {
+				gsap.to(els, {
+					opacity: 1,
+					y: 0,
+					duration: 0.3,
+					stagger: 0.06,
+					ease: 'power3.out',
+					overwrite: true,
+					onComplete: () => els.forEach((el) => el.classList.add('is-visible'))
+				});
+			}
+		});
+		ScrollTrigger.refresh();
+	}
 	$effect(() => {
-		const els = document.querySelectorAll('.reveal');
-		const io = new IntersectionObserver(
-			(entries) => {
-				for (const e of entries) if (e.isIntersecting) e.target.classList.add('is-visible');
-			},
-			{ threshold: 0.12 }
-		);
-		els.forEach((el) => io.observe(el));
-		return () => io.disconnect();
+		setupReveals();
 	});
+	afterNavigate(() => {
+		// New page content is in the DOM by the time afterNavigate runs.
+		requestAnimationFrame(setupReveals);
+	});
+
+	// Product pages have their own sticky add-to-cart bar, so the global
+	// mobile bar is hidden there — the two must never stack.
+	const isProduct = $derived(page.url.pathname.startsWith('/product/'));
 </script>
 
 <svelte:head>
@@ -142,11 +175,16 @@
 	aria-hidden="true"
 ></div>
 
-<Header />
-<main id="main">{@render children()}</main>
-<Newsletter />
-<Footer />
+<!-- MotionConfig reducedMotion="user": every @humanspeak/svelte-motion
+     animation below honours the visitor's reduced-motion preference. -->
+<MotionConfig reducedMotion="user">
+	<Header />
+	<main id="main">{@render children()}</main>
+	<Newsletter />
+	<Footer />
+</MotionConfig>
 
+{#if !isProduct}
 <!-- Sticky mobile bottom bar: Call / Order / Track -->
 <nav
 	aria-label="Quick actions"
@@ -166,3 +204,4 @@
 </nav>
 <!-- Spacer so the sticky bar never covers footer content on mobile -->
 <div class="h-14 lg:hidden" aria-hidden="true"></div>
+{/if}

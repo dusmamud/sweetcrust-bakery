@@ -185,6 +185,18 @@
 					{item.label}
 				</a>
 			{/each}
+			<p class="pt-3 pb-1 text-xs font-bold tracking-wider text-muted uppercase">More from SweetCrust</p>
+			<div class="grid grid-cols-2 gap-x-4">
+				{#each [['Wedding Cakes', '/wedding-cakes'], ['Tastings', '/tastings'], ['Gift Cards', '/gift-cards'], ['Catering', '/catering'], ['Subscriptions', '/subscriptions'], ['Loyalty', '/loyalty'], ['Seasonal', '/seasonal'], ['Cafe Menu', '/cafe-menu'], ['Reviews', '/reviews'], ['Visit Us', '/locations'], ['Delivery & Pickup', '/delivery'], ['Allergens', '/allergens']] as [label, href]}
+					<a
+						href={href}
+						class="flex min-h-11 items-center text-sm font-medium text-ink/80"
+						onclick={() => (open = false)}
+					>
+						{label}
+					</a>
+				{/each}
+			</div>
 			<div class="mt-4 flex gap-3">
 				<a
 					href="/track-order"

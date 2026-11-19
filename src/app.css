@@ -26,6 +26,9 @@
 
 html {
 	scroll-behavior: smooth;
+	/* WCAG 2.2 AA 2.4.11 Focus Not Obscured: keep focused elements clear
+	   of the sticky header (and the sticky mobile bars). */
+	scroll-padding-top: 120px;
 }
 
 body {
@@ -65,21 +68,21 @@ body {
 	}
 }
 
+/* Scroll reveals are driven by GSAP ScrollTrigger in +layout.svelte
+   (fade + 16px rise, once, 60ms stagger). No CSS transition here —
+   it would fight GSAP's per-frame inline styles. The final state lives
+   in .is-visible so content is still readable without JS. */
 .reveal {
 	opacity: 0;
 	transform: translateY(16px);
-	transition:
-		opacity 300ms var(--ease-out-expo),
-		transform 300ms var(--ease-out-expo);
 }
 .reveal.is-visible {
 	opacity: 1;
-	transform: translateY(0);
+	transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
 	.reveal {
 		opacity: 1;
 		transform: none;
-		transition: none;
 	}
 }

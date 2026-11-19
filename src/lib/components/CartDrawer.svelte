@@ -1,6 +1,9 @@
 <script lang="ts">
 	// Slide-in cart drawer: line items, qty steppers, free-delivery progress over $35.
+	// Slide + fade via @humanspeak/svelte-motion AnimatePresence (exit
+	// animation included); reduced motion is honoured by MotionConfig.
 	import { Minus, Plus, Trash2, X } from '@lucide/svelte';
+	import { AnimatePresence, motion } from '@humanspeak/svelte-motion';
 	import { cart, clearCart, removeLine, setQty } from '#lib/cart.svelte.ts';
 	import { usd } from '#lib/data/site.ts';
 	import Picture from './Picture.svelte';
@@ -11,15 +14,29 @@
 	const progress = $derived(Math.min(100, (cart.subtotal / 35) * 100));
 </script>
 
-{#if open}
-	<div class="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-label="Your basket">
-		<button
-			type="button"
-			class="absolute inset-0 bg-choco-deep/50"
-			aria-label="Close bag"
-			onclick={() => (open = false)}
-		></button>
-		<aside class="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-2xl" data-lenis-prevent>
+<AnimatePresence>
+	{#if open}
+		<div class="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-label="Your basket">
+			<motion.button
+				key="cart-backdrop"
+				type="button"
+				class="absolute inset-0 cursor-default bg-choco-deep/50"
+				aria-label="Close bag"
+				onclick={() => (open = false)}
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				exit={{ opacity: 0 }}
+				transition={{ duration: 0.2 }}
+			></motion.button>
+			<motion.aside
+				key="cart-drawer"
+				class="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-2xl"
+				data-lenis-prevent
+				initial={{ x: '100%' }}
+				animate={{ x: 0 }}
+				exit={{ x: '100%' }}
+				transition={{ duration: 0.25, ease: 'easeOut' }}
+			>
 			<div class="flex items-center justify-between border-b border-line px-5 py-4">
 				<h2 class="font-display text-2xl font-medium text-choco">Your basket ({cart.count})</h2>
 				<button
@@ -69,13 +86,16 @@
 							<div class="min-w-0 flex-1">
 								<p class="truncate font-semibold text-ink">{line.name}</p>
 								{#if line.option}<p class="text-sm text-muted">{line.option}</p>{/if}
+								{#if line.flavour}<p class="text-sm text-muted">{line.flavour}</p>{/if}
+								{#if line.message}<p class="truncate text-sm text-muted">“{line.message}”</p>{/if}
+								{#if line.giftRecipient}<p class="text-sm text-muted">Gift for {line.giftRecipient}</p>{/if}
 								<p class="text-sm text-muted">{usd(line.price)} each</p>
 							</div>
 							<div class="flex shrink-0 flex-col items-end gap-2">
 								<div class="flex items-center rounded-full bg-sand">
 									<button
 										type="button"
-										onclick={() => setQty(line.slug, line.option, line.qty - 1)}
+										onclick={() => setQty(line.slug, line.option, line.qty - 1, line.flavour ?? '', line.message ?? '')}
 										aria-label={`One less ${line.name}`}
 										class="flex h-11 w-11 items-center justify-center rounded-full text-ink"
 									>
@@ -84,7 +104,7 @@
 									<span class="w-6 text-center text-sm font-bold" aria-label={`${line.qty} of ${line.name}`}>{line.qty}</span>
 									<button
 										type="button"
-										onclick={() => setQty(line.slug, line.option, line.qty + 1)}
+										onclick={() => setQty(line.slug, line.option, line.qty + 1, line.flavour ?? '', line.message ?? '')}
 										aria-label={`One more ${line.name}`}
 										class="flex h-11 w-11 items-center justify-center rounded-full text-ink"
 									>
@@ -95,7 +115,7 @@
 									<p class="text-sm font-bold text-ink">{usd(line.price * line.qty)}</p>
 									<button
 										type="button"
-										onclick={() => removeLine(line.slug, line.option)}
+										onclick={() => removeLine(line.slug, line.option, line.flavour ?? '', line.message ?? '')}
 										aria-label={`Remove ${line.name}`}
 										class="flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-ink"
 									>
@@ -106,6 +126,14 @@
 						</li>
 					{/each}
 				</ul>
+
+				{#if cart.fulfilment}
+					<p class="border-t border-line px-5 py-3 text-sm leading-relaxed text-muted" role="status">
+						<strong class="text-ink">{cart.fulfilment.method === 'pickup' ? 'Pickup' : 'Delivery'}:</strong>
+						{cart.fulfilment.label}, {cart.fulfilment.slot}
+						<a href="/cart" onclick={() => (open = false)} class="ml-1 font-bold text-choco hover:underline">Change</a>
+					</p>
+				{/if}
 
 				<div class="space-y-1 border-t border-line px-5 py-4 text-sm">
 					<p class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold">{usd(cart.subtotal)}</span></p>
@@ -135,6 +163,7 @@
 					</div>
 				</div>
 			{/if}
-		</aside>
-	</div>
-{/if}
+			</motion.aside>
+		</div>
+	{/if}
+</AnimatePresence>

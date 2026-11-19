@@ -1,8 +1,27 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { categories, products, usd, type Dietary } from '#lib/data/site.ts';
+	import autoAnimate from '@formkit/auto-animate';
+	import { categories, products, site, usd, type Dietary } from '#lib/data/site.ts';
 	import ProductCard from '#lib/components/ProductCard.svelte';
 	import PageHero from '#lib/components/PageHero.svelte';
+
+	// CollectionPage + ItemList for the catalogue (all 12 products).
+	const collectionLd = {
+		'@context': 'https://schema.org',
+		'@type': 'CollectionPage',
+		name: 'Our Products — SweetCrust Bakery & Cafe',
+		url: `${site.url}/shop`,
+		mainEntity: {
+			'@type': 'ItemList',
+			numberOfItems: products.length,
+			itemListElement: products.map((p, i) => ({
+				'@type': 'ListItem',
+				position: i + 1,
+				url: `${site.url}/product/${p.slug}`,
+				name: p.name
+			}))
+		}
+	};
 
 	const dietaryOptions: { id: Dietary; label: string }[] = [
 		{ id: 'eggless', label: 'Eggless' },
@@ -45,6 +64,8 @@
 <svelte:head>
 	<title>Our Products — SweetCrust Bakery &amp; Cafe</title>
 	<meta name="description" content="Shop cakes, cupcakes, pastries, bread and cookies at SweetCrust Bakery. Filter by category, dietary needs and price — fresh from our New York bakery." />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+	{@html `<script type="application/ld+json">${JSON.stringify(collectionLd)}</script>`}
 </svelte:head>
 
 <PageHero title="Our Products" eyebrow="Fresh from the oven" intro="Cakes, cupcakes, pastries, bread and cookies — baked fresh every morning in small batches. Filter by category or dietary needs to find your favourite." />
@@ -97,7 +118,8 @@
 			<a href="/shop" class="mt-6 inline-flex min-h-12 items-center rounded-full bg-choco px-7 text-sm font-bold text-white uppercase">Clear filters</a>
 		</div>
 	{:else}
-		<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+		<!-- auto-animate FLIP: filtered/sorted products glide, never jump. -->
+		<div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" use:autoAnimate>
 			{#each filtered as product (product.slug)}
 				<ProductCard {product} />
 			{/each}

@@ -479,3 +479,314 @@ export const mockOrders: Record<string, { status: string; items: string; eta: st
 	'SC-2026-1038': { status: 'Being baked', items: 'Red Velvet Cake × 1', eta: 'Tomorrow, 10:00 AM', placed: 'November 18, 2026' },
 	'SC-2026-1021': { status: 'Delivered', items: 'Blueberry Cheesecake × 1, Macaron Gift Box × 2', eta: 'Delivered Nov 17, 2026', placed: 'November 16, 2026' }
 };
+
+// ─── Round-2 data: ordering core, allergens, reviews, new pages ────────────
+// All mock. Cut-off: same-day pickup/delivery by 1 PM. Closed Sundays.
+// Lead times are per product; the longest lead time in the basket wins.
+
+export const cutoffText = 'Same-day pickup by 1 PM';
+export const closedDayText = 'Closed Sundays — the ovens rest, too.';
+
+export const fulfilmentSlots = ['9:00 – 11:00 AM', '11:00 AM – 1:00 PM', '2:00 – 4:00 PM', '4:00 – 6:00 PM'];
+
+export type DeliveryZone = { prefixes: string[]; area: string; fee: number; min: number; note: string };
+
+export const deliveryZones: DeliveryZone[] = [
+	{ prefixes: ['100', '101', '102'], area: 'Manhattan', fee: 4.95, min: 0, note: 'Same-day available' },
+	{ prefixes: ['112'], area: 'Brooklyn', fee: 6.95, min: 25, note: 'Next-day available' },
+	{ prefixes: ['111', '113', '114'], area: 'Queens', fee: 7.95, min: 25, note: 'Next-day available' },
+	{ prefixes: ['073', '070'], area: 'Jersey City & Hoboken', fee: 9.95, min: 35, note: 'Next-day available' }
+];
+
+export type ProductExtra = {
+	sizePrices: number[];
+	flavours?: { label: string; delta: number }[];
+	allergens: string[];
+	leadTimeDays: number;
+};
+
+// sizePrices line up with product.sizes. Flavours only where they apply.
+export const productExtras: Record<string, ProductExtra> = {
+	'chocolate-truffle-cake': {
+		sizePrices: [28, 38, 48],
+		flavours: [
+			{ label: 'Classic dark chocolate', delta: 0 },
+			{ label: 'Salted caramel truffle', delta: 4 },
+			{ label: 'Espresso truffle', delta: 4 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk'],
+		leadTimeDays: 2
+	},
+	'red-velvet-cake': {
+		sizePrices: [26, 36, 46],
+		flavours: [
+			{ label: 'Classic red velvet', delta: 0 },
+			{ label: 'Chocolate fudge', delta: 4 },
+			{ label: 'Lemon cream', delta: 4 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk'],
+		leadTimeDays: 2
+	},
+	'blueberry-cheesecake': {
+		sizePrices: [24, 32, 42],
+		flavours: [
+			{ label: 'Blueberry', delta: 0 },
+			{ label: 'Strawberry', delta: 2 },
+			{ label: 'Classic New York', delta: 0 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk'],
+		leadTimeDays: 2
+	},
+	'chocolate-cupcakes': { sizePrices: [18, 32], allergens: ['Wheat (gluten)', 'Egg', 'Milk'], leadTimeDays: 0 },
+	'vanilla-bean-cake': {
+		sizePrices: [25, 35, 45],
+		flavours: [
+			{ label: 'Madagascar vanilla', delta: 0 },
+			{ label: 'Strawberry cream', delta: 4 },
+			{ label: 'Lemon curd', delta: 4 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk'],
+		leadTimeDays: 2
+	},
+	'strawberry-shortcake': {
+		sizePrices: [27, 37, 47],
+		flavours: [
+			{ label: 'Classic strawberry', delta: 0 },
+			{ label: 'Mixed berries', delta: 4 },
+			{ label: 'Peach & cream', delta: 4 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk'],
+		leadTimeDays: 2
+	},
+	'lemon-tart': { sizePrices: [16, 28], allergens: ['Wheat (gluten)', 'Egg', 'Milk'], leadTimeDays: 1 },
+	'cinnamon-rolls': { sizePrices: [14, 36], allergens: ['Wheat (gluten)', 'Egg', 'Milk'], leadTimeDays: 0 },
+	'butter-croissant': { sizePrices: [6, 20], allergens: ['Wheat (gluten)', 'Milk'], leadTimeDays: 0 },
+	'macaron-box': { sizePrices: [12, 22], allergens: ['Tree nuts (almond)', 'Egg', 'Milk'], leadTimeDays: 1 },
+	'carrot-cake': {
+		sizePrices: [24, 34, 44],
+		flavours: [
+			{ label: 'Classic walnut', delta: 0 },
+			{ label: 'Pecan praline', delta: 4 },
+			{ label: 'Orange spice', delta: 4 }
+		],
+		allergens: ['Wheat (gluten)', 'Egg', 'Milk', 'Tree nuts (walnut)'],
+		leadTimeDays: 2
+	},
+	tiramisu: { sizePrices: [12, 23], allergens: ['Wheat (gluten)', 'Egg', 'Milk'], leadTimeDays: 1 }
+};
+
+export const sharedKitchenCaveat =
+	'Made in a kitchen that also handles wheat, nuts, dairy, egg, sesame and soy. We cannot guarantee the absence of traces — please tell us about allergies before you order.';
+
+export type ProductReview = { author: string; date: string; rating: number; title: string; text: string };
+
+export const productReviews: Record<string, ProductReview[]> = {
+	'chocolate-truffle-cake': [
+		{ author: 'Maya S.', date: 'Nov 14, 2026', rating: 5, title: 'The birthday hero', text: 'Ordered the 8-inch for my husband’s birthday — the ganache was glossy, the sponge stayed moist, and there was not a single slice left. We have ordered it three times now.' },
+		{ author: 'James L.', date: 'Nov 2, 2026', rating: 5, title: 'Better than the photos', text: 'It looked exactly like the picture and tasted even better. The truffle centre is dangerously good. Pickup was ready right on time.' },
+		{ author: 'Anita R.', date: 'Oct 21, 2026', rating: 4, title: 'Rich — in the best way', text: 'Very rich, so small slices go a long way. Next time I would ask for the salted caramel version, but the classic is a crowd-pleaser.' }
+	],
+	'red-velvet-cake': [
+		{ author: 'Grace W.', date: 'Nov 10, 2026', rating: 5, title: 'Valentine’s winner', text: 'The cream cheese frosting is perfectly tangy and the crumb is so soft. My partner asked where it was from before finishing the first slice.' },
+		{ author: 'Tom B.', date: 'Oct 30, 2026', rating: 5, title: 'Beautiful and delicious', text: 'Ordered for an anniversary. It sliced cleanly, looked stunning on the plate, and the red velvet crumbs on top are a lovely touch.' },
+		{ author: 'Priya K.', date: 'Oct 12, 2026', rating: 4, title: 'A little sweet for me', text: 'Gorgeous cake and lovely texture. I found the frosting a touch sweet, but everyone else at the table disagreed and went back for seconds.' }
+	],
+	'blueberry-cheesecake': [
+		{ author: 'Elena M.', date: 'Nov 15, 2026', rating: 5, title: 'The one I gift most', text: 'I have sent this cheesecake to four different friends and every single one asked for the bakery’s name. Dense, creamy, perfect blueberries.' },
+		{ author: 'David H.', date: 'Nov 1, 2026', rating: 5, title: 'Better than my New York benchmark', text: 'I grew up on New York cheesecake and this one holds up — proper density, a real graham crumb, and the compote is not too sweet.' },
+		{ author: 'Sara F.', date: 'Oct 18, 2026', rating: 5, title: 'Travels well', text: 'Took it to a dinner party across town in the insulated box — arrived perfect, sliced beautifully, and vanished in minutes.' }
+	],
+	'chocolate-cupcakes': [
+		{ author: 'Nina P.', date: 'Nov 12, 2026', rating: 5, title: 'Party saviours', text: 'Two boxes for a school party — the kids went wild for the buttercream swirls and the teachers asked where they were from.' },
+		{ author: 'Omar D.', date: 'Oct 27, 2026', rating: 4, title: 'Moist and generous', text: 'Properly chocolatey with a tall swirl. I wish the box of 12 was a little cheaper, but the quality is there.' },
+		{ author: 'Lily C.', date: 'Oct 9, 2026', rating: 5, title: 'My Friday ritual', text: 'A box of six every Friday. No regrets, no sharing. The sprinkles make me unreasonably happy.' }
+	],
+	'vanilla-bean-cake': [
+		{ author: 'Hannah G.', date: 'Nov 8, 2026', rating: 5, title: 'The quiet classic', text: 'You can see the vanilla seeds in the sponge. Subtle, elegant, and the eggless version tasted identical — my mother-in-law never noticed.' },
+		{ author: 'Marcus T.', date: 'Oct 25, 2026', rating: 5, title: 'Converted a cake sceptic', text: 'I “don’t like cake”. I ate two slices of this. The vanilla buttercream is the real deal.' },
+		{ author: 'Zoe A.', date: 'Oct 5, 2026', rating: 4, title: 'Lovely, light and pretty', text: 'Beautiful with white flowers on top. A touch more vanilla would make it perfect for me, but it is a wonderful wedding-style cake.' }
+	],
+	'strawberry-shortcake': [
+		{ author: 'Ivy J.', date: 'Nov 11, 2026', rating: 5, title: 'Tastes like June', text: 'The strawberries were fresh and the chantilly cream was whipped just right. Eat it the same day — it is at its best then.' },
+		{ author: 'Ben K.', date: 'Oct 22, 2026', rating: 5, title: 'Spring in a box', text: 'Light, not too sweet, and the berries on top looked like a magazine photo. My go-to for Mother’s Day now.' },
+		{ author: 'Rosa V.', date: 'Oct 3, 2026', rating: 4, title: 'Delicate and fresh', text: 'Wonderful flavour. It is a soft cake, so handle the box gently on the way home — worth it.' }
+	],
+	'lemon-tart': [
+		{ author: 'Clara D.', date: 'Nov 9, 2026', rating: 5, title: 'Sharp, bright, perfect', text: 'The lemon curd has a real bite and the meringue peaks are torched beautifully. My favourite thing in the shop with a cup of tea.' },
+		{ author: 'Sam O.', date: 'Oct 19, 2026', rating: 5, title: 'Afternoon tea star', text: 'Crisp shell, silky curd, not too sweet. I brought the whole tart to a book club and it was gone before the first chapter was discussed.' },
+		{ author: 'Mia N.', date: 'Oct 1, 2026', rating: 4, title: 'Lovely and lemony', text: 'Very good — I would love a slightly bigger meringue topping, but the tart itself is spot on.' }
+	],
+	'cinnamon-rolls': [
+		{ author: 'Alex P.', date: 'Nov 16, 2026', rating: 5, title: 'Dangerous. In a good way.', text: 'Still warm when I got them, glaze melting into the swirls. I came in for one croissant and left with a tray of twelve.' },
+		{ author: 'Fatima Z.', date: 'Nov 3, 2026', rating: 5, title: 'Sunday morning essential', text: 'Twenty seconds in the microwave and they taste fresh from the oven. The cream cheese glaze is the best part.' },
+		{ author: 'Chris E.', date: 'Oct 15, 2026', rating: 5, title: 'Office hero', text: 'Ordered the tray of twelve for the office. Gone by 10 AM and I was asked to bring them every Friday. I have accepted my fate.' }
+	],
+	'butter-croissant': [
+		{ author: 'Julien B.', date: 'Nov 13, 2026', rating: 5, title: 'Proper lamination', text: 'You can hear the shatter when you bite in. Three days of lamination is not a marketing line — you can taste the patience.' },
+		{ author: 'Emma W.', date: 'Oct 28, 2026', rating: 5, title: 'My morning ritual', text: 'Still warm at 8 AM, with coffee, at the little table by the window. This is my favourite twenty minutes of the day.' },
+		{ author: 'Raj M.', date: 'Oct 8, 2026', rating: 4, title: 'Buttery and flaky', text: 'Excellent croissant. They sell out fast on weekends, so go early or order ahead.' }
+	],
+	'macaron-box': [
+		{ author: 'Yuki T.', date: 'Nov 7, 2026', rating: 5, title: 'The easiest impressive gift', text: 'The pistachio ones are unreal — crisp shell, chewy middle, proper ganache. The gift box makes it feel like a luxury present.' },
+		{ author: 'Olivia S.', date: 'Oct 24, 2026', rating: 5, title: 'Pretty and delicious', text: 'Pastel colours, delicate flavours, and naturally gluten-free which my sister appreciated. The raspberry is my favourite.' },
+		{ author: 'Noah F.', date: 'Oct 11, 2026', rating: 4, title: 'A little sweet, very good', text: 'Beautiful box and lovely textures. I would happily pay a little more for a salted caramel flavour in the mix.' }
+	],
+	'carrot-cake': [
+		{ author: 'Helen R.', date: 'Nov 6, 2026', rating: 5, title: 'The vegetables count', text: 'Moist, spiced, proper walnuts and cream cheese frosting that is not too sweet. My grandmother’s recipe would approve.' },
+		{ author: 'Peter G.', date: 'Oct 20, 2026', rating: 5, title: 'Birthday favourite', text: 'Ordered for my wife’s birthday after years of chocolate cakes — she says this is the new house favourite. The cinnamon is just right.' },
+		{ author: 'Dana L.', date: 'Oct 6, 2026', rating: 4, title: 'Warm and homely', text: 'Lovely spiced sponge. I asked for extra walnuts on top next time and they happily did it.' }
+	],
+	tiramisu: [
+		{ author: 'Giulia C.', date: 'Nov 5, 2026', rating: 5, title: 'Proper tiramisu', text: 'As an Italian, I am fussy about tiramisu. The espresso is strong, the mascarpone is gentle, and the cocoa dusting is generous. Bravo.' },
+		{ author: 'Mark S.', date: 'Oct 23, 2026', rating: 5, title: 'Dinner party win', text: 'Served chilled with a spoon and no plans to share — the family size fed six and everyone wanted the recipe.' },
+		{ author: 'Aisha B.', date: 'Oct 14, 2026', rating: 4, title: 'Creamy and coffee-rich', text: 'Delicious and well balanced. A little more cocoa on top would be my only note.' }
+	]
+};
+
+// ─── Allergen page data ──────────────────────────────────────────────────────
+export const allergenClaims = [
+	{ level: 'Contains', meaning: 'The ingredient is in the recipe. It is listed on the product page and on the label.' },
+	{ level: 'Made without', meaning: 'The recipe omits the ingredient, but the kitchen still handles it. Traces are possible — ask us first.' },
+	{ level: 'Free from', meaning: 'Made with separate ingredients, equipment and process, meeting the legal definition (for gluten-free: under 20 ppm).' },
+	{ level: 'Certified', meaning: 'Verified by an outside body. We currently hold no certified allergen-free lines.' }
+];
+
+export const allergenList = [
+	{ name: 'Wheat (gluten)', note: 'In most cakes, breads and pastries. Gluten-free macarons and selected bakes available to order.' },
+	{ name: 'Egg', note: 'In cakes, tarts and glazes. Eggless versions of most celebration cakes available with 48 hours’ notice.' },
+	{ name: 'Milk', note: 'Butter, cream and milk in most bakes. Vegan chocolate cake baked to order.' },
+	{ name: 'Tree nuts', note: 'Almond (macarons), walnut (carrot cake), pistachio (macarons). Never in our standard sponge unless listed.' },
+	{ name: 'Peanuts', note: 'Not used in any standard recipe. Peanut butter bakes are seasonal only and clearly labelled.' },
+	{ name: 'Soy', note: 'In some chocolate and margarine-based bakes. Ask for the soy-free list in store.' },
+	{ name: 'Sesame', note: 'On some breads and rolls only. All other bakes are sesame-free.' },
+	{ name: 'Fish, shellfish, mustard, celery, lupin, sulphites', note: 'Not used in any SweetCrust recipe.' }
+];
+
+// ─── Wedding cakes + tastings ────────────────────────────────────────────────
+export const weddingTiers = [
+	{ tiers: 'Two tiers', serves: 'Serves 30–40', from: 180, note: 'Small weddings & intimate receptions' },
+	{ tiers: 'Three tiers', serves: 'Serves 50–70', from: 320, note: 'Our most popular wedding size' },
+	{ tiers: 'Four tiers', serves: 'Serves 90–120', from: 480, note: 'Grand celebrations' },
+	{ tiers: 'Five tiers +', serves: 'Serves 150+', from: 650, note: 'Quoted individually' }
+];
+
+export const weddingFlavours = ['Vanilla Bean', 'Chocolate Truffle', 'Red Velvet', 'Strawberry Shortcake', 'Lemon & Elderflower', 'Carrot & Walnut'];
+
+export const tastingSessions = [
+	{ date: 'Saturday, Nov 22, 2026', time: '10:00 AM', spots: 3 },
+	{ date: 'Saturday, Nov 22, 2026', time: '12:00 PM', spots: 2 },
+	{ date: 'Saturday, Nov 29, 2026', time: '10:00 AM', spots: 4 },
+	{ date: 'Saturday, Nov 29, 2026', time: '12:00 PM', spots: 1 },
+	{ date: 'Saturday, Dec 6, 2026', time: '10:00 AM', spots: 5 },
+	{ date: 'Saturday, Dec 6, 2026', time: '2:00 PM', spots: 4 }
+];
+
+export const tastingFeeNote = 'Tastings are $80 per couple for six flavours — fully deductible from any wedding cake order over $600.';
+
+// ─── Gift cards, catering, subscriptions, loyalty, seasonal, cafe, wholesale, careers ──
+export const giftCardDenominations = [25, 50, 100, 150];
+
+export const cateringTrays = [
+	{ name: 'Pastry Breakfast Tray', feeds: 'Feeds 10–12', price: 58, detail: 'Croissants, cinnamon rolls and muffins, butter & jam on the side.' },
+	{ name: 'Mini Cake & Tart Platter', feeds: 'Feeds 15–20', price: 85, detail: 'Lemon tarts, macarons, mini cheesecakes and brownie bites.' },
+	{ name: 'Celebration Cake + Cupcakes', feeds: 'Feeds 20–25', price: 120, detail: 'One 8" celebration cake plus a box of 12 cupcakes in your flavours.' },
+	{ name: 'Office Coffee Break Box', feeds: 'Feeds 8–10', price: 46, detail: 'Cookies, brownies and macarons — the meeting-friendly box.' }
+];
+
+export const subscriptionPlans = [
+	{ name: 'Weekly Bread Box', price: 24, per: 'per week', detail: 'A sourdough or country loaf, a pack of croissants and a surprise bake, every Friday.' },
+	{ name: 'Monthly Treat Box', price: 39, per: 'per month', detail: 'A rotating box of 12 seasonal treats — macarons, tarts, cookies and a mini cake.' },
+	{ name: 'Weekend Brunch Box', price: 32, per: 'per week', detail: 'Cinnamon rolls, croissants and jam for slow Saturday mornings. Skip or pause any week.' }
+];
+
+export const loyaltyRewards = [
+	{ stamps: 4, reward: 'Free coffee with any pastry' },
+	{ stamps: 8, reward: 'Free pastry of your choice' },
+	{ stamps: 12, reward: 'Free box of 6 cupcakes' },
+	{ stamps: 16, reward: 'Free 6" celebration cake' }
+];
+
+export const seasonalCollections = [
+	{
+		id: 'christmas',
+		name: 'Christmas Collection',
+		deadline: 'Order by Dec 18 for pickup Dec 23–24',
+		image: 'seasonal-christmas',
+		imageAlt: 'Festive Christmas cake with red berries, pine sprigs and gold stars',
+		items: [
+			{ name: 'Christmas Fruit Cake', price: 34, detail: 'Spiced, brandy-soaked, marzipan-topped.' },
+			{ name: 'Yule Log (Bûche de Noël)', price: 38, detail: 'Chocolate sponge, ganache bark, meringue mushrooms.' },
+			{ name: 'Gingerbread House Kit', price: 28, detail: 'Bake-and-build kit with icing and sweets.' }
+		]
+	},
+	{
+		id: 'valentines',
+		name: 'Valentine’s Collection',
+		deadline: 'Order by Feb 10 for pickup Feb 13–14',
+		image: 'seasonal-valentines',
+		imageAlt: 'Romantic Valentine’s Day cake with pink frosting, fresh roses and heart chocolates',
+		items: [
+			{ name: 'Rose & Raspberry Cake', price: 32, detail: 'Pink buttercream, fresh roses, raspberry centre.' },
+			{ name: 'Heart-Shaped Red Velvet', price: 30, detail: 'Our red velvet, shaped for two (or one).' },
+			{ name: 'Chocolate Truffle Hearts', price: 18, detail: 'Box of 6 hand-rolled truffles.' }
+		]
+	}
+];
+
+export const cafeMenu = [
+	{ section: 'Coffee & Drinks', items: [
+		{ name: 'Espresso', price: 3.5, detail: 'Double shot, single-origin beans.' },
+		{ name: 'Cappuccino', price: 4.5, detail: 'Velvety milk, cocoa dusting.' },
+		{ name: 'Flat White', price: 4.5, detail: 'Silky microfoam, strong and smooth.' },
+		{ name: 'Hot Chocolate', price: 5, detail: 'Made with our own ganache — properly rich.' },
+		{ name: 'Fresh Lemonade', price: 4, detail: 'Squeezed daily, lightly sweetened.' }
+	] },
+	{ section: 'From the Counter', items: [
+		{ name: 'Butter Croissant', price: 6, detail: 'Laminated over three days. Still warm at 8 AM.' },
+		{ name: 'Cinnamon Roll', price: 7, detail: 'Glazed while warm, cream cheese on top.' },
+		{ name: 'Almond Croissant', price: 7.5, detail: 'Twice-baked with frangipane and flaked almonds.' },
+		{ name: 'Lemon Tart (slice)', price: 6.5, detail: 'Sharp curd, torched meringue.' },
+		{ name: 'Sourdough Toast', price: 8, detail: 'With butter and jam, or avocado and sea salt.' }
+	] },
+	{ section: 'Fridays Only', items: [
+		{ name: 'Sourdough Loaf', price: 9, detail: 'Baked Fridays, sold until it runs out.' },
+		{ name: 'Cardamom Buns', price: 6, detail: 'Swedish-style, pearl sugar on top.' }
+	] }
+];
+
+export const wholesaleInfo = {
+	minimums: 'Minimum order $150 per delivery. Two deliveries a week: Tuesdays and Fridays.',
+	days: 'Delivery days: Tuesday & Friday, 7–10 AM. Pickup any weekday from 8 AM.',
+	products: ['Croissants & pastries', 'Sourdough & sandwich loaves', 'Cakes by the slice', 'Cookies & brownies']
+};
+
+export const careers = [
+	{ role: 'Pastry Chef (full-time)', detail: 'Two years’ experience, early mornings, real butter. You will run the morning bake.' },
+	{ role: 'Cake Decorator (part-time)', detail: 'Buttercream, piping and fondant work for custom and wedding cakes. Weekends included.' },
+	{ role: 'Front of House — Weekends', detail: 'Counter service, coffee, and telling people the cinnamon rolls are worth it. They are.' },
+	{ role: 'Delivery Driver (part-time)', detail: 'Tuesday–Saturday, careful hands and a clean licence. Cakes travel like royalty.' }
+];
+
+export type SiteReview = { author: string; source: string; date: string; rating: number; text: string; reply?: string };
+
+export const siteReviews: SiteReview[] = [
+	{ author: 'Priya Mehta', source: 'Google', date: 'Nov 2026', rating: 5, text: 'The cake was not only beautiful but absolutely delicious! SweetCrust made my birthday extra special. Highly recommended!', reply: 'Thank you, Priya — it was a joy to bake for you. Happy birthday again!' },
+	{ author: 'Daniel Carter', source: 'Google', date: 'Nov 2026', rating: 5, text: 'I ordered a custom wedding cake and it was beyond perfect — three tiers of vanilla bean and strawberry, and guests are still talking about it.', reply: 'Congratulations, Daniel! Three tiers of vanilla bean is a house favourite — thank you for trusting us.' },
+	{ author: 'Sofia Ramirez', source: 'Google', date: 'Oct 2026', rating: 5, text: 'The cinnamon rolls are dangerous. I came in for one croissant and left with a tray of twelve. Zero regrets.', reply: 'We take full responsibility, Sofia. The tray of twelve is the correct life choice.' },
+	{ author: 'James Okafor', source: 'Yelp', date: 'Oct 2026', rating: 5, text: 'Best croissant in the neighbourhood, and the coffee is proper too. The staff remember your order by the second visit.', reply: 'Thank you, James — the usual is already on the counter when you walk in.' },
+	{ author: 'Hannah Lee', source: 'Google', date: 'Sep 2026', rating: 4, text: 'Lovely bakery, beautiful cakes, and the eggless vanilla cake was a hit with my family. It gets busy on Saturday mornings, so order ahead.', reply: 'Thank you, Hannah — Saturday mornings are our busiest, and pre-orders always skip the queue.' },
+	{ author: 'Marco Silva', source: 'On-site', date: 'Sep 2026', rating: 5, text: 'Ordered the catering tray for an office lunch — the pastry tray disappeared in twenty minutes and the cake platter got a round of applause.', reply: 'Thank you, Marco — office catering is our favourite kind of chaos. See you next month!' }
+];
+
+// ─── Custom-cake page data ───────────────────────────────────────────────────
+export const customCakeSizes = [
+	{ size: '6" — Serves 6', from: 45 },
+	{ size: '8" — Serves 10', from: 58 },
+	{ size: '10" — Serves 16', from: 75 },
+	{ size: 'Two-tier — Serves 30', from: 140 },
+	{ size: 'Three-tier — Serves 50', from: 210 }
+];
+
+export const customCakeFlavours = ['Chocolate Truffle', 'Red Velvet', 'Vanilla Bean', 'Strawberry Shortcake', 'Blueberry Cheesecake', 'Carrot Cake', 'Lemon'];
+
+export const customCakeFillings = ['Chocolate ganache', 'Salted caramel', 'Fresh berries', 'Cream cheese', 'Lemon curd', 'Nutella-style hazelnut'];
