@@ -1,12 +1,15 @@
 <script lang="ts">
-	import { Check, Clock, Gift, Minus, Plus, ShoppingBag, Truck, Wheat } from '@lucide/svelte';
+	import { Bell, Check, Clock, Gift, Heart, Minus, Plus, ShieldCheck, ShoppingBag, Truck, Wheat } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
 	import { Tween } from 'svelte/motion';
-	import { products, productExtras, productReviews, sharedKitchenCaveat, site, usd, cutoffText, closedDayText } from '#lib/data/site.ts';
+	import { products, productExtras, productNutrition, productReviews, productStock, sharedKitchenCaveat, site, usd, cutoffText, closedDayText } from '#lib/data/site.ts';
 	import { addToCart } from '#lib/cart.svelte.ts';
+	import { toggleWishlist, wishlist } from '#lib/wishlist.svelte.ts';
 	import { earliestDate, formatDay, productLeadTime } from '#lib/fulfilment.ts';
 	import Picture from '#lib/components/Picture.svelte';
 	import ProductCard from '#lib/components/ProductCard.svelte';
 	import Stars from '#lib/components/Stars.svelte';
+	import BundleUpsell from '#lib/components/BundleUpsell.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -15,6 +18,10 @@
 	const extra = $derived(productExtras[product.slug]);
 	const reviews = $derived(productReviews[product.slug] ?? []);
 	const leadDays = $derived(productLeadTime(product.slug));
+	const stock = $derived(productStock[product.slug] ?? { state: 'in' as const, note: 'Baked to order.' });
+	const nutrition = $derived(productNutrition[product.slug]);
+	let notifyEmail = $state('');
+	let notifyDone = $state(false);
 
 	let sizeIdx = $state(0);
 	let flavourIdx = $state(0);
@@ -51,6 +58,13 @@
 		window.setTimeout(() => (added = false), 1800);
 	}
 
+	// Mock express pay: add the configured treat, then jump to the mock
+	// express checkout (no real wallet, no real payment).
+	function onExpress(method: 'apple-pay' | 'google-pay') {
+		onAdd();
+		goto(`/checkout?express=${method}`);
+	}
+
 	const jsonLd = $derived({
 		'@context': 'https://schema.org',
 		'@graph': [
@@ -65,8 +79,19 @@
 					'@type': 'Offer',
 					price: unitPrice,
 					priceCurrency: 'USD',
-					availability: 'https://schema.org/InStock',
-					url: `${site.url}/product/${product.slug}`
+					availability:
+						stock.state === 'preorder' ? 'https://schema.org/PreOrder' : stock.state === 'low' ? 'https://schema.org/LimitedAvailability' : 'https://schema.org/InStock',
+					url: `${site.url}/product/${product.slug}`,
+					shippingDetails: {
+						'@type': 'OfferShippingDetails',
+						shippingRate: { '@type': 'MonetaryAmount', value: 4.95, currency: 'USD' },
+						shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'US' },
+						deliveryTime: {
+							'@type': 'ShippingDeliveryTime',
+							handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 2, unitCode: 'DAY' },
+							transitTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' }
+						}
+					}
 				},
 				aggregateRating: { '@type': 'AggregateRating', ratingValue: product.rating, reviewCount: product.reviews },
 				review: reviews.map((r) => ({
@@ -118,12 +143,59 @@
 		</div>
 
 		<div>
-			{#if product.badge}<span class="inline-block rounded-full bg-choco px-3 py-1 text-xs font-bold tracking-wide text-white uppercase">{product.badge}</span>{/if}
+			<div class="flex flex-wrap items-center gap-2">
+				{#if product.badge}<span class="inline-block rounded-full bg-choco px-3 py-1 text-xs font-bold tracking-wide text-white uppercase">{product.badge}</span>{/if}
+				{#if stock.state === 'low'}
+					<span class="inline-block rounded-full bg-blush px-3 py-1 text-xs font-bold tracking-wide text-choco uppercase">Only {stock.left} left</span>
+				{:else if stock.state === 'preorder'}
+					<span class="inline-block rounded-full bg-blush px-3 py-1 text-xs font-bold tracking-wide text-choco uppercase">Pre-order</span>
+				{:else}
+					<span class="inline-block rounded-full bg-choco-soft px-3 py-1 text-xs font-bold tracking-wide text-choco uppercase">In stock</span>
+				{/if}
+				<button
+					type="button"
+					onclick={() => toggleWishlist(product.slug)}
+					aria-pressed={wishlist.has(product.slug)}
+					aria-label={wishlist.has(product.slug) ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+					class="ml-auto flex h-12 w-12 items-center justify-center rounded-full ring-1 transition-colors duration-150 {wishlist.has(product.slug) ? 'bg-blush text-choco ring-line' : 'bg-white text-muted ring-line hover:text-choco'}"
+				>
+					<Heart size={21} aria-hidden="true" fill={wishlist.has(product.slug) ? 'currentColor' : 'none'} />
+				</button>
+			</div>
 			<h1 class="mt-3 font-display text-4xl leading-tight font-semibold text-choco">{product.name}</h1>
 			<div class="mt-3 flex flex-wrap items-center gap-3">
 				<Stars rating={product.rating} reviews={product.reviews} />
 				<span class="text-sm text-muted">· {product.serves}</span>
 			</div>
+			<p class="mt-2 text-sm font-semibold {stock.state === 'low' ? 'text-choco' : 'text-muted'}" role="status">{stock.note}</p>
+			{#if stock.state !== 'in'}
+				{#if notifyDone}
+					<p class="mt-3 rounded-2xl bg-cream-deep px-4 py-3 text-sm font-semibold text-choco ring-1 ring-line" role="status">
+						Thanks — we will email you the moment it is back in stock. (Demo: no email is really sent.)
+					</p>
+				{:else}
+					<form
+						class="mt-3 flex flex-col gap-2 sm:flex-row"
+						onsubmit={(e) => {
+							e.preventDefault();
+							if (notifyEmail.includes('@')) notifyDone = true;
+						}}
+					>
+						<label for="notify-email" class="sr-only">Email for back-in-stock alert</label>
+						<input
+							id="notify-email"
+							type="email"
+							bind:value={notifyEmail}
+							required
+							placeholder="Email me when it is back"
+							class="min-h-12 min-w-0 flex-1 rounded-full border border-line bg-white px-5 text-base text-ink placeholder:text-muted"
+						/>
+						<button type="submit" class="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full border-2 border-choco px-6 text-sm font-bold text-choco">
+							<Bell size={16} aria-hidden="true" /> Notify me
+						</button>
+					</form>
+				{/if}
+			{/if}
 			<p class="mt-4 text-3xl font-bold text-ink" aria-live="polite">{usd(unitPrice)}</p>
 			<p class="mt-4 leading-relaxed text-muted">{product.description}</p>
 			{#each product.long as para}
@@ -193,7 +265,7 @@
 				{/if}
 			</div>
 
-			<!-- Gift message -->
+			<!-- Gift message (card) with live preview — distinct from the cake message above -->
 			<div class="mt-5 grid gap-4 sm:grid-cols-2">
 				<div>
 					<label for="gift-recipient" class="text-sm font-bold text-ink">Gift for (optional)</label>
@@ -204,6 +276,14 @@
 					<input id="gift-message" type="text" bind:value={giftMessage} maxlength={120} placeholder="A note in the box" class="mt-2 min-h-12 w-full rounded-full border border-line bg-white px-5 text-base text-ink placeholder:text-muted" />
 				</div>
 			</div>
+			{#if giftMessage.trim() || giftRecipient.trim()}
+				<div class="mt-3 rounded-2xl bg-white p-5 text-center ring-1 ring-line" aria-live="polite">
+					<p class="text-xs font-bold tracking-wider text-muted uppercase">Your gift card will read</p>
+					<p class="mt-2 font-script text-3xl leading-snug text-choco">“{giftMessage.trim() || 'With love, from SweetCrust'}”</p>
+					{#if giftRecipient.trim()}<p class="mt-2 text-sm font-semibold text-ink">To {giftRecipient.trim()}</p>{/if}
+					<p class="text-xs text-muted">Handwritten on our signature card, free with every gifted order.</p>
+				</div>
+			{/if}
 
 			<div class="mt-6 flex flex-wrap items-center gap-3">
 				<div class="flex items-center rounded-full border border-line bg-white" role="group" aria-label="Quantity">
@@ -228,6 +308,24 @@
 					{/if}
 				</button>
 			</div>
+
+			<div class="mt-5">
+				<p class="text-center text-xs font-bold tracking-wider text-muted uppercase">Or check out instantly — demo only</p>
+				<div class="mt-2 grid grid-cols-2 gap-2">
+					<button type="button" onclick={() => onExpress('apple-pay')} class="flex min-h-12 items-center justify-center gap-2 rounded-full bg-black text-sm font-bold text-white" aria-label="Buy now with Apple Pay (demo)">
+						<span aria-hidden="true" class="text-base"> Pay</span>
+					</button>
+					<button type="button" onclick={() => onExpress('google-pay')} class="flex min-h-12 items-center justify-center gap-2 rounded-full bg-white text-sm font-bold text-ink ring-1 ring-line" aria-label="Buy now with Google Pay (demo)">
+						<span aria-hidden="true" class="text-base font-bold"><span class="text-[#4285F4]">G</span> Pay</span>
+					</button>
+				</div>
+			</div>
+
+			<p class="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-muted">
+				<span class="flex items-center gap-1.5"><ShieldCheck size={15} aria-hidden="true" class="text-caramel" /> Secure mock checkout — no card details stored</span>
+				<span class="flex items-center gap-1.5"><Check size={15} aria-hidden="true" class="text-caramel" /> Baked fresh today</span>
+				<span class="flex items-center gap-1.5"><Truck size={15} aria-hidden="true" class="text-caramel" /> Free returns within 24 hours</span>
+			</p>
 
 			<ul class="mt-6 space-y-2 text-sm text-muted">
 				<li class="flex items-center gap-2"><Truck size={17} aria-hidden="true" class="shrink-0 text-caramel" /> Free delivery over $35 · $4.95 below · Delivered in insulated boxes</li>
@@ -284,6 +382,51 @@
 			{/each}
 		</div>
 	</section>
+
+	<!-- Nutrition (estimates) -->
+	{#if nutrition}
+		<section class="mt-16" aria-labelledby="nutrition-title">
+			<h2 id="nutrition-title" class="font-display text-3xl font-semibold text-choco">Nutrition — per serving</h2>
+			<p class="mt-2 text-sm text-muted">Estimates only, calculated from our recipe — not medical advice. Serving: {nutrition.serving}.</p>
+			<div class="mt-5 overflow-x-auto rounded-3xl bg-white ring-1 ring-line">
+				<table class="w-full min-w-[480px] text-left text-sm">
+					<thead>
+						<tr class="border-b border-line text-xs tracking-wider text-muted uppercase">
+							<th scope="col" class="px-5 py-4">Per serving ({nutrition.serving})</th>
+							<th scope="col" class="px-5 py-4">Energy</th>
+							<th scope="col" class="px-5 py-4">Fat</th>
+							<th scope="col" class="px-5 py-4">Carbs</th>
+							<th scope="col" class="px-5 py-4">of which sugars</th>
+							<th scope="col" class="px-5 py-4">Protein</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr class="border-b border-line/60">
+							<td class="px-5 py-4 font-bold text-ink">Per serving</td>
+							<td class="px-5 py-4">{nutrition.perServing.kcal} kcal</td>
+							<td class="px-5 py-4">{nutrition.perServing.fat} g</td>
+							<td class="px-5 py-4">{nutrition.perServing.carbs} g</td>
+							<td class="px-5 py-4">{nutrition.perServing.sugar} g</td>
+							<td class="px-5 py-4">{nutrition.perServing.protein} g</td>
+						</tr>
+						<tr>
+							<td class="px-5 py-4 font-bold text-ink">Per 100 g</td>
+							<td class="px-5 py-4">{nutrition.per100g.kcal} kcal</td>
+							<td class="px-5 py-4">{nutrition.per100g.fat} g</td>
+							<td class="px-5 py-4">{nutrition.per100g.carbs} g</td>
+							<td class="px-5 py-4">{nutrition.per100g.sugar} g</td>
+							<td class="px-5 py-4">{nutrition.per100g.protein} g</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	{/if}
+
+	<!-- Frequently bought together -->
+	<div class="mt-16">
+		<BundleUpsell />
+	</div>
 
 	{#if related.length > 0}
 		<div class="mt-16">

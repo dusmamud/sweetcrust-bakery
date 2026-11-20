@@ -28,7 +28,7 @@
 		<nav aria-label="Quick links">
 			<h2 class="text-sm font-bold tracking-wider text-white uppercase">Quick Links</h2>
 			<ul class="mt-4 space-y-1 text-sm">
-				{#each [['Home', '/'], ['About Us', '/about'], ['Our Products', '/shop'], ['Custom Cakes', '/custom-cakes'], ['Wedding Cakes', '/wedding-cakes'], ['Gift Cards', '/gift-cards'], ['Blog', '/blog'], ['Contact Us', '/contact']] as [label, href]}
+				{#each [['Home', '/'], ['About Us', '/about'], ['Our Products', '/shop'], ['Custom Cakes', '/custom-cakes'], ['Wedding Cakes', '/wedding-cakes'], ['Gift Cards', '/gift-cards'], ['Baking Classes', '/classes'], ['Corporate Gifting', '/corporate-gifting'], ['Blog', '/blog'], ['Press & Media', '/press'], ['Contact Us', '/contact']] as [label, href]}
 					<li><a href={href} class="inline-flex min-h-11 items-center transition-colors duration-150 hover:text-white">{label}</a></li>
 				{/each}
 			</ul>
@@ -37,7 +37,7 @@
 		<nav aria-label="Explore">
 			<h2 class="text-sm font-bold tracking-wider text-white uppercase">Explore</h2>
 			<ul class="mt-4 space-y-1 text-sm">
-				{#each [['Tastings', '/tastings'], ['Catering', '/catering'], ['Subscriptions', '/subscriptions'], ['Loyalty', '/loyalty'], ['Seasonal Pre-Orders', '/seasonal'], ['Cafe Menu', '/cafe-menu'], ['Reviews', '/reviews'], ['Visit Us', '/locations']] as [label, href]}
+				{#each [['My Account', '/account'], ['Wishlist', '/wishlist'], ['Search', '/search'], ['Tastings', '/tastings'], ['Catering', '/catering'], ['Subscriptions', '/subscriptions'], ['Loyalty', '/loyalty'], ['Seasonal Pre-Orders', '/seasonal'], ['Cafe Menu', '/cafe-menu'], ['Reviews', '/reviews'], ['Visit Us', '/locations']] as [label, href]}
 					<li><a href={href} class="inline-flex min-h-11 items-center transition-colors duration-150 hover:text-white">{label}</a></li>
 				{/each}
 			</ul>
@@ -46,7 +46,7 @@
 		<nav aria-label="Customer support">
 			<h2 class="text-sm font-bold tracking-wider text-white uppercase">Customer Support</h2>
 			<ul class="mt-4 space-y-1 text-sm">
-				{#each [['Track Order', '/track-order'], ['Delivery & Pickup', '/delivery'], ['Allergens & Dietary', '/allergens'], ['Shipping Policy', '/shipping'], ['Return & Refund', '/returns'], ['FAQs', '/faq'], ['Wholesale', '/wholesale'], ['Careers', '/careers'], ['Terms & Conditions', '/terms'], ['Privacy Policy', '/privacy']] as [label, href]}
+				{#each [['Track Order', '/track-order'], ['Delivery & Pickup', '/delivery'], ['Allergens & Dietary', '/allergens'], ['Shipping Policy', '/shipping'], ['Return & Refund', '/returns'], ['FAQs', '/faq'], ['Wholesale', '/wholesale'], ['Careers', '/careers'], ['Accessibility', '/accessibility'], ['Sitemap', '/sitemap'], ['Terms & Conditions', '/terms'], ['Privacy Policy', '/privacy']] as [label, href]}
 					<li><a href={href} class="inline-flex min-h-11 items-center transition-colors duration-150 hover:text-white">{label}</a></li>
 				{/each}
 			</ul>

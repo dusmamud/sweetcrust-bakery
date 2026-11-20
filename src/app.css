@@ -70,19 +70,14 @@ body {
 
 /* Scroll reveals are driven by GSAP ScrollTrigger in +layout.svelte
    (fade + 16px rise, once, 60ms stagger). No CSS transition here —
-   it would fight GSAP's per-frame inline styles. The final state lives
-   in .is-visible so content is still readable without JS. */
+   it would fight GSAP's per-frame inline styles. The default state is
+   VISIBLE: gsap.set() hides .reveal elements only when motion is allowed,
+   so content is never invisible if JS or animations do not run. */
 .reveal {
-	opacity: 0;
-	transform: translateY(16px);
+	opacity: 1;
+	transform: none;
 }
 .reveal.is-visible {
 	opacity: 1;
 	transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-	.reveal {
-		opacity: 1;
-		transform: none;
-	}
 }

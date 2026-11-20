@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { Check, Clock, MapPin, PartyPopper, Truck } from '@lucide/svelte';
+	import { page } from '$app/state';
 	import { cart, clearCart, setFulfilment, type Fulfilment } from '#lib/cart.svelte.ts';
+	import { promo, applyPromo } from '#lib/promo.svelte.ts';
+	import { account, addOrder, earnStamp } from '#lib/account.svelte.ts';
 	import { cutoffText, site, usd } from '#lib/data/site.ts';
 	import { leadTimeForSlugs } from '#lib/fulfilment.ts';
 	import PageHero from '#lib/components/PageHero.svelte';
 	import SlotPicker from '#lib/components/SlotPicker.svelte';
 	import ZipChecker from '#lib/components/ZipChecker.svelte';
+	import PromoField from '#lib/components/PromoField.svelte';
+	import ExpressPay from '#lib/components/ExpressPay.svelte';
 
 	let step = $state(1);
 	let method = $state<'delivery' | 'pickup'>(cart.fulfilment?.method ?? 'delivery');
@@ -21,10 +26,35 @@
 	let ref = $state('');
 	let eta = $state('');
 	let errors = $state<Record<string, string>>({});
+	// Mock express checkout (?express=apple-pay / google-pay): skips the
+	// details step and completes with the account's saved details (or guest
+	// defaults). No real wallet, no real payment.
+	let expressMode = $state(false);
 
 	const leadDays = $derived(leadTimeForSlugs(cart.lines.map((l) => l.slug)));
 	const deliveryFee = $derived(method === 'pickup' ? 0 : cart.delivery);
-	const total = $derived(cart.subtotal + deliveryFee);
+	const total = $derived(cart.subtotal - cart.discount + deliveryFee);
+
+	// Auto-apply ?promo= and enter mock express mode from ?express=.
+	// Client-side only, runs once.
+	let paramsApplied = $state(false);
+	$effect(() => {
+		if (paramsApplied || typeof window === 'undefined') return;
+		paramsApplied = true;
+		const promoCode = page.url.searchParams.get('promo');
+		if (promoCode) applyPromo(promoCode);
+		const express = page.url.searchParams.get('express');
+		if ((express === 'apple-pay' || express === 'google-pay') && cart.count > 0) {
+			expressMode = true;
+			payMethod = express === 'apple-pay' ? 'Apple Pay' : 'Google Pay';
+			const u = account.user;
+			name = u?.name ?? 'Guest';
+			email = u?.email ?? 'guest@example.com';
+			phone = u?.phone ?? '+1 234 567 8900';
+			address = u?.addresses[0]?.detail ?? '123 Baker Street, New York, NY 10001';
+			step = 2;
+		}
+	});
 	const slotText = $derived(
 		cart.fulfilment ? `${cart.fulfilment.label}, ${cart.fulfilment.slot}` : 'No slot chosen yet'
 	);
@@ -58,16 +88,35 @@
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
-	function placeOrder(e: SubmitEvent) {
-		e.preventDefault();
+	function placeOrder() {
 		ref = `SC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 		eta =
 			method === 'delivery'
 				? `${cart.fulfilment?.label ?? 'Today'}, ${cart.fulfilment?.slot ?? '2:00 – 4:00 PM'} — delivery to ${address || 'your address'}`
 				: `${cart.fulfilment?.label ?? 'Today'}, ${cart.fulfilment?.slot ?? '2:00 – 4:00 PM'} — pickup at 123 Baker Street`;
+		// Mock: record the order in the signed-in account's history and earn
+		// a loyalty stamp (mock only — nothing is really ordered).
+		if (account.signedIn) {
+			addOrder({
+				ref,
+				date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+				items: cart.lines.map((l) => ({ slug: l.slug, name: l.name, qty: l.qty, price: l.price })),
+				total,
+				status: 'Being baked',
+				eta
+			});
+			earnStamp();
+		}
 		placed = true;
 		clearCart();
 		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
+	// Mock express pay: completes the mock order immediately (details were
+	// prefilled from the account or guest defaults).
+	function onExpress(methodName: 'Apple Pay' | 'Google Pay') {
+		payMethod = methodName;
+		placeOrder();
 	}
 </script>
 
@@ -91,6 +140,7 @@
 			<h2 class="mt-5 font-display text-3xl font-semibold text-choco">Order confirmed!</h2>
 			<p class="mt-3 leading-relaxed text-muted">Thank you, {name || 'friend'} — your treats are being prepared with love.</p>
 			<p class="mt-5 inline-block rounded-full bg-cream-deep px-5 py-2.5 font-bold text-choco ring-1 ring-line">Order ref: {ref}</p>
+			<p class="mt-3 text-sm text-muted">Paid with {payMethod} (mock) · {usd(total)} · status updates by SMS/WhatsApp if enabled in your <a href="/account" class="font-bold text-choco">account</a>.</p>
 			<div class="mx-auto mt-6 max-w-md space-y-3 text-left">
 				{#each [[true, 'Order received', 'We have your order and the bakers are on it.'], [true, 'Being baked', 'Your treats are in the oven right now.'], [false, method === 'delivery' ? 'Out for delivery' : 'Ready for pickup', eta], [false, method === 'delivery' ? 'Delivered' : 'Picked up', 'Enjoy every bite!']] as [done, label, detail]}
 					<div class="flex gap-3">
@@ -187,8 +237,14 @@
 					{/if}
 				</div>
 
+				<div class="mt-6">
+					<PromoField />
+				</div>
 				<div class="mt-6 space-y-2 border-t border-line pt-4 text-sm">
 					<p class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold">{usd(cart.subtotal)}</span></p>
+					{#if cart.discount > 0}
+						<p class="flex justify-between"><span class="text-muted">Promo ({promo.applied?.code})</span><span class="font-semibold text-choco">−{usd(cart.discount)}</span></p>
+					{/if}
 					<p class="flex justify-between"><span class="text-muted">{method === 'delivery' ? 'Delivery' : 'Pickup'}</span><span class="font-semibold">{deliveryFee === 0 ? 'Free' : usd(deliveryFee)}</span></p>
 					<p class="flex justify-between"><span class="text-muted">Slot</span><span class="font-semibold">{slotText}</span></p>
 					<p class="flex justify-between text-base font-bold text-ink"><span>Total</span><span>{usd(total)}</span></p>
@@ -200,7 +256,16 @@
 				<div class="mt-6"><ZipChecker /></div>
 			{/if}
 		{:else}
-			<form onsubmit={placeOrder} class="rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8">
+			<div class="mb-6 rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8">
+				<ExpressPay amount={total} onExpress={onExpress} />
+			</div>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					placeOrder();
+				}}
+				class="rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8"
+			>
 				<h2 class="font-display text-2xl font-semibold text-choco">Mock payment</h2>
 				<p class="mt-2 text-sm leading-relaxed text-muted">This is a demo checkout. Choose any method — no card details are collected and no payment is taken.</p>
 				<div class="mt-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Payment method">
@@ -227,8 +292,14 @@
 						<p class="mt-2 text-sm text-muted">Billing address is collected after the order in the mock flow — no payment is taken either way.</p>
 					{/if}
 				{/if}
+				<div class="mt-6">
+					<PromoField />
+				</div>
 				<div class="mt-6 space-y-2 border-t border-line pt-4 text-sm">
 					<p class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold">{usd(cart.subtotal)}</span></p>
+					{#if cart.discount > 0}
+						<p class="flex justify-between"><span class="text-muted">Promo ({promo.applied?.code})</span><span class="font-semibold text-choco">−{usd(cart.discount)}</span></p>
+					{/if}
 					<p class="flex justify-between"><span class="text-muted">{method === 'delivery' ? 'Delivery' : 'Pickup'}</span><span class="font-semibold">{deliveryFee === 0 ? 'Free' : usd(deliveryFee)}</span></p>
 					<p class="flex justify-between"><span class="text-muted">Slot</span><span class="font-semibold">{slotText}</span></p>
 					<p class="flex justify-between text-base font-bold text-ink"><span>Total to pay</span><span>{usd(total)}</span></p>

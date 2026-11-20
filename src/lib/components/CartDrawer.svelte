@@ -137,6 +137,9 @@
 
 				<div class="space-y-1 border-t border-line px-5 py-4 text-sm">
 					<p class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold">{usd(cart.subtotal)}</span></p>
+					{#if cart.discount > 0}
+						<p class="flex justify-between"><span class="text-muted">Promo discount</span><span class="font-semibold text-choco">−{usd(cart.discount)}</span></p>
+					{/if}
 					<p class="flex justify-between">
 						<span class="text-muted">Delivery</span><span class="font-semibold"
 							>{cart.delivery === 0 ? 'Free' : usd(cart.delivery)}</span

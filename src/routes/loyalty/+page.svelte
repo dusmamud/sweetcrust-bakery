@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Cake, Check, Gift, PartyPopper } from '@lucide/svelte';
 	import { loyaltyRewards, site } from '#lib/data/site.ts';
+	import { account } from '#lib/account.svelte.ts';
 	import PageHero from '#lib/components/PageHero.svelte';
 
 	let name = $state('');
@@ -8,8 +9,10 @@
 	let done = $state(false);
 	let ref = $state('');
 
-	// Mock progress for a returning regular — the stamp card in action.
-	const stamps = 5;
+	// Your real (mock) progress when signed in — one stamp per order placed.
+	// Signed out, we show Maya's card, a regular since March.
+	const stamps = $derived(account.user?.stamps ?? 5);
+	const cardOwner = $derived(account.user ? 'Your card' : 'This is Maya’s card — a regular since March.');
 	const totalStamps = 16;
 
 	function submit(e: SubmitEvent) {
@@ -31,8 +34,8 @@
 		<div class="lg:col-span-3">
 			<div class="rounded-3xl bg-white p-6 ring-1 ring-line sm:p-8">
 				<h2 class="font-display text-2xl font-semibold text-choco">Your stamp card</h2>
-				<p class="mt-2 text-sm text-muted">This is Maya’s card — a regular since March. {stamps} of {totalStamps} stamps so far, and a free pastry is 3 visits away.</p>
-				<div class="mt-6 grid grid-cols-4 gap-3 sm:grid-cols-8" role="img" aria-label="Stamp card: 5 of 16 stamps collected">
+				<p class="mt-2 text-sm text-muted">{cardOwner} {stamps} of {totalStamps} stamps so far{#if stamps < 8}, and a free pastry is {8 - stamps} visit{8 - stamps === 1 ? '' : 's'} away{:else if stamps < 16}, and a free 6" cake is {16 - stamps} visit{16 - stamps === 1 ? '' : 's'} away{/if}.</p>
+				<div class="mt-6 grid grid-cols-4 gap-3 sm:grid-cols-8" role="img" aria-label="Stamp card: {stamps} of 16 stamps collected">
 					{#each Array.from({ length: totalStamps }, (_, i) => i) as i}
 						<div class="flex aspect-square items-center justify-center rounded-2xl {i < stamps ? 'bg-choco text-white' : 'bg-cream-deep text-muted ring-1 ring-line'}">
 							{#if i < stamps}

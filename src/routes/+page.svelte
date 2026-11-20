@@ -52,6 +52,17 @@
 		name="description"
 		content="Delicious cakes, pastries, and baked treats made with the finest ingredients, just for you. Order custom cakes for birthdays, weddings and anniversaries in New York."
 	/>
+	<!-- Hero image preload (AVIF, same srcset/sizes as the <picture> below,
+	     so the preloaded file is the one the browser uses — no double fetch). -->
+	<link
+		rel="preload"
+		as="image"
+		type="image/avif"
+		href="/images/hero-cake-800.avif"
+		imagesrcset="/images/hero-cake-480.avif 480w, /images/hero-cake-800.avif 800w, /images/hero-cake-1200.avif 1200w, /images/hero-cake-1600.avif 1600w"
+		imagesizes="(min-width: 1024px) 50vw, 100vw"
+		fetchpriority="high"
+	/>
 </svelte:head>
 
 <!-- ── Hero: one primary CTA + hours visible without scrolling ──────────── -->

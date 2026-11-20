@@ -12,16 +12,23 @@
 	import '@fontsource/caveat/700.css';
 	import '../app.css';
 	import { afterNavigate, onNavigate } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import Lenis from 'lenis';
 	import gsap from 'gsap';
 	import { ScrollTrigger } from 'gsap/ScrollTrigger';
-	import { Cake, Phone, ShoppingBag } from '@lucide/svelte';
 	import { MotionConfig } from '@humanspeak/svelte-motion';
 	import Header from '#lib/components/Header.svelte';
 	import Footer from '#lib/components/Footer.svelte';
 	import Newsletter from '#lib/components/Newsletter.svelte';
+	import BottomTabBar from '#lib/components/BottomTabBar.svelte';
+	import ChatWidget from '#lib/components/ChatWidget.svelte';
+	import CartRecoveryBanner from '#lib/components/CartRecoveryBanner.svelte';
 	import { site } from '#lib/data/site.ts';
+	import { restoreCart } from '#lib/cart.svelte.ts';
+	import { restoreWishlist } from '#lib/wishlist.svelte.ts';
+	import { restorePromo } from '#lib/promo.svelte.ts';
+	import { restoreAccount } from '#lib/account.svelte.ts';
 
 	let { children } = $props();
 
@@ -38,33 +45,61 @@
 		});
 	});
 
+	// Organization + Bakery LocalBusiness (one graph): policies are declared
+	// once at Organization level (MerchantReturnPolicy, ShippingService) so
+	// product Offers only override by exception. No aggregateRating anywhere
+	// on the business — Product pages carry their own first-party ratings.
 	const jsonLd = {
 		'@context': 'https://schema.org',
-		'@type': 'Bakery',
-		name: site.name,
-		description:
-			'Freshly baked cakes, cupcakes, pastries, bread and cookies in New York — custom cakes for birthdays, weddings and anniversaries, made with the finest ingredients.',
-		telephone: site.phoneDisplay,
-		email: site.email,
-		address: {
-			'@type': 'PostalAddress',
-			streetAddress: '123 Baker Street',
-			addressLocality: 'New York',
-			addressRegion: 'NY',
-			postalCode: '10001',
-			addressCountry: 'US'
-		},
-		geo: { '@type': 'GeoCoordinates', latitude: 40.7484, longitude: -73.9857 },
-		openingHoursSpecification: {
-			'@type': 'OpeningHoursSpecification',
-			dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-			opens: '08:00',
-			closes: '20:00'
-		},
-		priceRange: '$',
-		url: site.url,
-		sameAs: [site.instagram, site.facebook],
-		servesCuisine: 'Bakery'
+		'@graph': [
+			{
+				'@type': 'Organization',
+				name: site.name,
+				url: site.url,
+				logo: `${site.url}/favicon.svg`,
+				sameAs: [site.instagram, site.facebook],
+				hasMerchantReturnPolicy: {
+					'@type': 'MerchantReturnPolicy',
+					applicableCountry: 'US',
+					returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+					merchantReturnDays: 1,
+					returnMethod: 'https://schema.org/ReturnInStore',
+					returnFees: 'https://schema.org/FreeReturn'
+				},
+				hasShippingService: {
+					'@type': 'ShippingService',
+					name: 'Local delivery',
+					areaServed: { '@type': 'City', name: 'New York' }
+				}
+			},
+			{
+				'@type': 'Bakery',
+				name: site.name,
+				description:
+					'Freshly baked cakes, cupcakes, pastries, bread and cookies in New York — custom cakes for birthdays, weddings and anniversaries, made with the finest ingredients.',
+				telephone: site.phoneDisplay,
+				email: site.email,
+				address: {
+					'@type': 'PostalAddress',
+					streetAddress: '123 Baker Street',
+					addressLocality: 'New York',
+					addressRegion: 'NY',
+					postalCode: '10001',
+					addressCountry: 'US'
+				},
+				geo: { '@type': 'GeoCoordinates', latitude: 40.7484, longitude: -73.9857 },
+				openingHoursSpecification: {
+					'@type': 'OpeningHoursSpecification',
+					dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+					opens: '08:00',
+					closes: '20:00'
+				},
+				priceRange: '$',
+				url: site.url,
+				sameAs: [site.instagram, site.facebook],
+				servesCuisine: 'Bakery'
+			}
+		]
 	};
 
 	// Smooth scroll (Lenis) + GSAP ScrollTrigger, one rAF loop, reduced-motion gated.
@@ -101,33 +136,48 @@
 	// 60ms on grids. The layout stays mounted across client-side
 	// navigations, so re-batch after every navigation — otherwise .reveal
 	// sections on a newly visited page would stay invisible forever.
-	// Reduced motion: everything visible immediately, no ScrollTrigger.
+	// Reduced motion (gsap.matchMedia): the reduce branch sets every .reveal
+	// to its end state with no animation — content is never hidden waiting
+	// for JS. The CSS default for .reveal is VISIBLE for the same reason;
+	// gsap.set() hides elements only when motion is allowed.
 	// (Svelte transitions ignore CSS reduced-motion, so the check is in code.)
 	let revealTriggers: ScrollTrigger[] = [];
+	let revealMm: gsap.MatchMedia | null = null;
 	function setupReveals() {
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-			document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
-			return;
-		}
 		gsap.registerPlugin(ScrollTrigger);
-		// Kill the previous page's batch triggers (their elements are gone).
-		revealTriggers.forEach((t) => t.kill());
-		revealTriggers = ScrollTrigger.batch('.reveal:not(.is-visible)', {
-			start: 'top 88%',
-			once: true,
-			onEnter: (els) => {
-				gsap.to(els, {
-					opacity: 1,
-					y: 0,
-					duration: 0.3,
-					stagger: 0.06,
-					ease: 'power3.out',
-					overwrite: true,
-					onComplete: () => els.forEach((el) => el.classList.add('is-visible'))
-				});
-			}
+		revealMm?.revert();
+		revealMm = gsap.matchMedia();
+		revealMm.add('(prefers-reduced-motion: reduce)', () => {
+			document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-visible'));
+			return () => {};
 		});
-		ScrollTrigger.refresh();
+		revealMm.add('(prefers-reduced-motion: no-preference)', () => {
+			// Kill the previous page's batch triggers (their elements are gone).
+			revealTriggers.forEach((t) => t.kill());
+			revealTriggers = ScrollTrigger.batch('.reveal:not(.is-visible)', {
+				start: 'top 88%',
+				once: true,
+				onEnter: (els) => {
+					gsap.to(els, {
+						opacity: 1,
+						y: 0,
+						duration: 0.3,
+						stagger: 0.06,
+						ease: 'power3.out',
+						overwrite: true,
+						onComplete: () => els.forEach((el) => el.classList.add('is-visible'))
+					});
+				}
+			});
+			// Hide only when motion is allowed — elements already in view are
+			// revealed by the batch immediately; the rest on scroll.
+			gsap.set('.reveal:not(.is-visible)', { opacity: 0, y: 16 });
+			ScrollTrigger.refresh();
+			return () => {
+				revealTriggers.forEach((t) => t.kill());
+				revealTriggers = [];
+			};
+		});
 	}
 	$effect(() => {
 		setupReveals();
@@ -135,6 +185,21 @@
 	afterNavigate(() => {
 		// New page content is in the DOM by the time afterNavigate runs.
 		requestAnimationFrame(setupReveals);
+	});
+
+	// Restore persisted mock state (cart, wishlist, promo, account) once,
+	// client-side only — prerendering must stay deterministic.
+	// NOTE: this must be onMount, NOT $effect. The restore functions read
+	// the same reactive state they write (e.g. lines.splice reads
+	// lines.length), so an $effect tracking those reads re-runs on every
+	// splice forever — effect_update_depth_exceeded, which aborted the
+	// update flush and left pages (cart, checkout, account) half-rendered.
+	// onMount runs once and tracks no dependencies.
+	onMount(() => {
+		restoreCart();
+		restoreWishlist();
+		restorePromo();
+		restoreAccount();
 	});
 
 	// Product pages have their own sticky add-to-cart bar, so the global
@@ -179,29 +244,16 @@
      animation below honours the visitor's reduced-motion preference. -->
 <MotionConfig reducedMotion="user">
 	<Header />
+	<CartRecoveryBanner />
 	<main id="main">{@render children()}</main>
 	<Newsletter />
 	<Footer />
 </MotionConfig>
 
+<ChatWidget />
+
 {#if !isProduct}
-<!-- Sticky mobile bottom bar: Call / Order / Track -->
-<nav
-	aria-label="Quick actions"
-	class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
->
-	<a href={site.phoneHref} class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-ink">
-		<Phone size={20} class="text-choco" aria-hidden="true" />
-		Call
-	</a>
-	<a href="/shop" class="flex min-h-14 items-center justify-center gap-2 bg-choco text-sm font-bold text-white">
-		<Cake size={18} aria-hidden="true" /> Order Now
-	</a>
-	<a href="/track-order" class="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-ink">
-		<ShoppingBag size={20} class="text-choco" aria-hidden="true" />
-		Track Order
-	</a>
-</nav>
-<!-- Spacer so the sticky bar never covers footer content on mobile -->
-<div class="h-14 lg:hidden" aria-hidden="true"></div>
+	<!-- Mobile bottom tab bar (Home / Shop / Search / Cart / Account). Product
+	     pages use their own sticky add-to-cart bar instead — never stacked. -->
+	<BottomTabBar />
 {/if}

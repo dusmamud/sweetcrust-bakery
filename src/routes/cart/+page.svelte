@@ -1,21 +1,45 @@
 <script lang="ts">
 	import { ArrowRight, CalendarClock, MapPin, Minus, Plus, ShoppingBag, Trash2, Truck } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import autoAnimate from '@formkit/auto-animate';
 	import { cart, clearCart, removeLine, setFulfilment, setQty, type Fulfilment } from '#lib/cart.svelte.ts';
+	import { promo, applyPromo } from '#lib/promo.svelte.ts';
 	import { cutoffText, site, usd } from '#lib/data/site.ts';
 	import { leadTimeForSlugs } from '#lib/fulfilment.ts';
 	import PageHero from '#lib/components/PageHero.svelte';
 	import Picture from '#lib/components/Picture.svelte';
 	import SlotPicker from '#lib/components/SlotPicker.svelte';
 	import ZipChecker from '#lib/components/ZipChecker.svelte';
+	import PromoField from '#lib/components/PromoField.svelte';
+	import ExpressPay from '#lib/components/ExpressPay.svelte';
+	import BundleUpsell from '#lib/components/BundleUpsell.svelte';
 
 	let method = $state<'delivery' | 'pickup'>(cart.fulfilment?.method ?? 'delivery');
 	const leadDays = $derived(leadTimeForSlugs(cart.lines.map((l) => l.slug)));
 	const deliveryFee = $derived(method === 'pickup' ? 0 : cart.delivery);
-	const total = $derived(cart.subtotal + deliveryFee);
+	const total = $derived(cart.subtotal - cart.discount + deliveryFee);
+	const freeProgress = $derived(Math.min(100, ((cart.subtotal - cart.discount) / 35) * 100));
+	const freeRemaining = $derived(Math.max(0, 35 - (cart.subtotal - cart.discount)));
+
+	// Auto-apply a promo code from a link (?promo=WELCOME10) — e.g. from a
+	// recovery message. Runs once, client-side only.
+	let promoAutoApplied = $state(false);
+	$effect(() => {
+		if (promoAutoApplied || typeof window === 'undefined') return;
+		const code = page.url.searchParams.get('promo');
+		if (code) {
+			applyPromo(code);
+			promoAutoApplied = true;
+		}
+	});
 
 	function onSlot(f: NonNullable<Fulfilment>) {
 		setFulfilment({ ...f, method });
+	}
+
+	function onExpress(methodName: 'Apple Pay' | 'Google Pay') {
+		goto(`/checkout?express=${methodName === 'Apple Pay' ? 'apple-pay' : 'google-pay'}`);
 	}
 </script>
 
@@ -35,6 +59,9 @@
 			<a href="/shop" class="mt-7 inline-flex min-h-12 items-center rounded-full bg-choco px-7 text-sm font-bold text-white uppercase">Shop treats</a>
 		</div>
 	{:else}
+		<div class="mx-auto mb-8 max-w-3xl">
+			<ExpressPay amount={total} onExpress={onExpress} />
+		</div>
 		<div class="grid gap-8 lg:grid-cols-3">
 			<div class="space-y-6 lg:col-span-2">
 				<ul class="space-y-4" use:autoAnimate>
@@ -113,12 +140,27 @@
 
 			<aside class="h-fit rounded-3xl bg-white p-6 ring-1 ring-line lg:sticky lg:top-32">
 				<h2 class="font-display text-2xl font-semibold text-choco">Order summary</h2>
+				{#if method === 'delivery'}
+					<div class="mt-4">
+						{#if freeRemaining > 0}
+							<p class="text-sm font-semibold text-ink">Add {usd(freeRemaining)} more for free delivery</p>
+						{:else}
+							<p class="text-sm font-semibold text-choco-light">Free delivery unlocked</p>
+						{/if}
+						<div class="mt-2 h-2 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={Math.round(freeProgress)} aria-valuemin={0} aria-valuemax={100} aria-label="Progress to free delivery">
+							<div class="h-full rounded-full bg-choco transition-all duration-300" style="width: {freeProgress}%"></div>
+						</div>
+					</div>
+				{/if}
+				<div class="mt-4">
+					<PromoField />
+				</div>
 				<div class="mt-4 space-y-2 text-sm">
 					<p class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold">{usd(cart.subtotal)}</span></p>
-					<p class="flex justify-between"><span class="text-muted">{method === 'pickup' ? 'Pickup' : 'Delivery'}</span><span class="font-semibold">{deliveryFee === 0 ? 'Free' : usd(deliveryFee)}</span></p>
-					{#if method === 'delivery' && deliveryFee > 0}
-						<p class="rounded-xl bg-cream-deep px-3 py-2 text-xs leading-relaxed text-muted">Add {usd(35 - cart.subtotal)} more for free delivery.</p>
+					{#if cart.discount > 0}
+						<p class="flex justify-between"><span class="text-muted">Promo ({promo.applied?.code})</span><span class="font-semibold text-choco">−{usd(cart.discount)}</span></p>
 					{/if}
+					<p class="flex justify-between"><span class="text-muted">{method === 'pickup' ? 'Pickup' : 'Delivery'}</span><span class="font-semibold">{deliveryFee === 0 ? 'Free' : usd(deliveryFee)}</span></p>
 					{#if cart.fulfilment}
 						<p class="flex justify-between"><span class="text-muted">Slot</span><span class="text-right font-semibold">{cart.fulfilment.label}, {cart.fulfilment.slot}</span></p>
 					{:else}
@@ -132,6 +174,9 @@
 				<a href="/shop" class="mt-3 flex min-h-12 items-center justify-center rounded-full border-2 border-choco px-7 text-sm font-bold text-choco uppercase">Continue shopping</a>
 				<p class="mt-4 text-center text-xs leading-relaxed text-muted">Mock checkout — no payment is taken and no card details are collected.</p>
 			</aside>
+		</div>
+		<div class="mt-8">
+			<BundleUpsell />
 		</div>
 	{/if}
 </section>

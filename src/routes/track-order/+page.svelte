@@ -52,7 +52,11 @@
 					<div class="flex justify-between gap-4"><dt class="text-muted">Placed</dt><dd class="font-semibold text-ink">{found.placed}</dd></div>
 					<div class="flex justify-between gap-4"><dt class="text-muted">Estimated</dt><dd class="font-semibold text-ink">{found.eta}</dd></div>
 				</dl>
-				<p class="mt-5 rounded-2xl bg-cream-deep p-4 text-center text-sm text-muted">Questions? Call us at <a href="tel:+12345678900" class="font-bold text-choco">+1 234 567 8900</a> with your order reference.</p>
+				<p class="mt-5 rounded-2xl bg-cream-deep p-4 text-center text-sm leading-relaxed text-muted">
+					<strong class="text-ink">Courier:</strong> SweetCrust van · mock ETA {found.eta}. Status updates are sent by SMS and WhatsApp
+					when enabled in your <a href="/account" class="font-bold text-choco">account</a> — demo only, nothing is really sent.
+				</p>
+				<p class="mt-3 rounded-2xl bg-cream-deep p-4 text-center text-sm text-muted">Questions? Call us at <a href="tel:+12345678900" class="font-bold text-choco">+1 234 567 8900</a> with your order reference.</p>
 			{:else}
 				<h2 class="text-center font-display text-2xl font-semibold text-choco">We could not find that order</h2>
 				<p class="mx-auto mt-3 max-w-md text-center leading-relaxed text-muted">

@@ -790,3 +790,122 @@ export const customCakeSizes = [
 export const customCakeFlavours = ['Chocolate Truffle', 'Red Velvet', 'Vanilla Bean', 'Strawberry Shortcake', 'Blueberry Cheesecake', 'Carrot Cake', 'Lemon'];
 
 export const customCakeFillings = ['Chocolate ganache', 'Salted caramel', 'Fresh berries', 'Cream cheese', 'Lemon curd', 'Nutella-style hazelnut'];
+
+// ─── Round-3 data: promo codes, stock, nutrition, add-ons, account, classes, corporate, press ──
+// All mock. Promo codes are demo codes — no real discounts, no real payments.
+
+export type PromoCode = { code: string; kind: 'percent' | 'freeship'; value: number; note: string };
+
+export const promoCodes: PromoCode[] = [
+	{ code: 'WELCOME10', kind: 'percent', value: 10, note: '10% off your first order' },
+	{ code: 'SWEET10', kind: 'percent', value: 10, note: '10% off any order' },
+	{ code: 'FREESHIP', kind: 'freeship', value: 0, note: 'Free delivery on this order' }
+];
+
+export type StockState = 'in' | 'low' | 'preorder';
+
+export const productStock: Record<string, { state: StockState; left?: number; note: string }> = {
+	'chocolate-truffle-cake': { state: 'in', note: 'Baked to order — plenty of slots this week.' },
+	'red-velvet-cake': { state: 'in', note: 'Baked to order — plenty of slots this week.' },
+	'blueberry-cheesecake': { state: 'low', left: 3, note: 'Only 3 left for Saturday pickup.' },
+	'chocolate-cupcakes': { state: 'in', note: 'Baked fresh every morning.' },
+	'vanilla-bean-cake': { state: 'in', note: 'Baked to order — plenty of slots this week.' },
+	'strawberry-shortcake': { state: 'low', left: 2, note: 'Only 2 left for Saturday pickup.' },
+	'lemon-tart': { state: 'in', note: 'Baked fresh every morning.' },
+	'cinnamon-rolls': { state: 'in', note: 'Baked fresh every morning — sells out by 10 AM most days.' },
+	'butter-croissant': { state: 'in', note: 'Baked in small batches through the morning.' },
+	'macaron-box': { state: 'low', left: 2, note: 'Only 2 boxes left for Saturday pickup.' },
+	'carrot-cake': { state: 'in', note: 'Baked to order — plenty of slots this week.' },
+	tiramisu: { state: 'preorder', note: 'Pre-order — next batch is chilled overnight for Friday.' }
+};
+
+export type Nutrition = {
+	serving: string;
+	perServing: { kcal: number; fat: number; carbs: number; sugar: number; protein: number };
+	per100g: { kcal: number; fat: number; carbs: number; sugar: number; protein: number };
+};
+
+// Estimates only (USDA-style values per ingredient, divided by servings) —
+// not medical advice, and not a substitute for the allergen guide.
+export const productNutrition: Record<string, Nutrition> = {
+	'chocolate-truffle-cake': { serving: '1 slice (100g)', perServing: { kcal: 420, fat: 24, carbs: 46, sugar: 34, protein: 6 }, per100g: { kcal: 420, fat: 24, carbs: 46, sugar: 34, protein: 6 } },
+	'red-velvet-cake': { serving: '1 slice (100g)', perServing: { kcal: 380, fat: 18, carbs: 50, sugar: 38, protein: 5 }, per100g: { kcal: 380, fat: 18, carbs: 50, sugar: 38, protein: 5 } },
+	'blueberry-cheesecake': { serving: '1 slice (110g)', perServing: { kcal: 360, fat: 22, carbs: 32, sugar: 24, protein: 7 }, per100g: { kcal: 327, fat: 20, carbs: 29, sugar: 22, protein: 6 } },
+	'chocolate-cupcakes': { serving: '1 cupcake (65g)', perServing: { kcal: 290, fat: 15, carbs: 36, sugar: 26, protein: 4 }, per100g: { kcal: 446, fat: 23, carbs: 55, sugar: 40, protein: 6 } },
+	'vanilla-bean-cake': { serving: '1 slice (100g)', perServing: { kcal: 390, fat: 20, carbs: 48, sugar: 36, protein: 5 }, per100g: { kcal: 390, fat: 20, carbs: 48, sugar: 36, protein: 5 } },
+	'strawberry-shortcake': { serving: '1 slice (110g)', perServing: { kcal: 320, fat: 14, carbs: 44, sugar: 30, protein: 4 }, per100g: { kcal: 291, fat: 13, carbs: 40, sugar: 27, protein: 4 } },
+	'lemon-tart': { serving: '1 slice (90g)', perServing: { kcal: 310, fat: 17, carbs: 38, sugar: 26, protein: 4 }, per100g: { kcal: 344, fat: 19, carbs: 42, sugar: 29, protein: 4 } },
+	'cinnamon-rolls': { serving: '1 roll (95g)', perServing: { kcal: 340, fat: 13, carbs: 52, sugar: 28, protein: 5 }, per100g: { kcal: 358, fat: 14, carbs: 55, sugar: 29, protein: 5 } },
+	'butter-croissant': { serving: '1 croissant (65g)', perServing: { kcal: 270, fat: 15, carbs: 28, sugar: 6, protein: 5 }, per100g: { kcal: 415, fat: 23, carbs: 43, sugar: 9, protein: 8 } },
+	'macaron-box': { serving: '2 macarons (30g)', perServing: { kcal: 130, fat: 6, carbs: 17, sugar: 15, protein: 2 }, per100g: { kcal: 433, fat: 20, carbs: 57, sugar: 50, protein: 7 } },
+	'carrot-cake': { serving: '1 slice (100g)', perServing: { kcal: 370, fat: 19, carbs: 44, sugar: 32, protein: 5 }, per100g: { kcal: 370, fat: 19, carbs: 44, sugar: 32, protein: 5 } },
+	tiramisu: { serving: '1 portion (110g)', perServing: { kcal: 330, fat: 19, carbs: 32, sugar: 22, protein: 6 }, per100g: { kcal: 300, fat: 17, carbs: 29, sugar: 20, protein: 5 } }
+};
+
+export type Addon = { slug: string; name: string; price: number; image: string; imageAlt: string; detail: string };
+
+export const productAddons: Addon[] = [
+	{ slug: 'addon-candles', name: 'Birthday Candles (12)', price: 4, image: 'product-chocolate-cupcakes', imageAlt: 'Birthday candles', detail: 'Twelve pastel candles with holders.' },
+	{ slug: 'addon-card', name: 'Handwritten Greeting Card', price: 5, image: 'product-macaron-box', imageAlt: 'Greeting card in a gift box', detail: 'Your message, handwritten by our team.' },
+	{ slug: 'addon-gift-wrap', name: 'Gift Wrap & Ribbon', price: 6, image: 'product-macaron-box', imageAlt: 'Gift-wrapped box with ribbon', detail: 'Signature kraft wrap, ribbon and a dried flower.' },
+	{ slug: 'addon-coffee', name: 'Flat White to Go', price: 4.5, image: 'product-butter-croissant', imageAlt: 'Flat white coffee', detail: 'Silky microfoam — ready with your pickup.' }
+];
+
+export const popularSearches = ['chocolate cake', 'birthday cake', 'red velvet', 'croissant', 'cinnamon rolls', 'eggless cake', 'macarons', 'cheesecake', 'wedding cake', 'vegan'];
+
+// ─── Mock account (demo only — no real auth, no real data) ──────────────────
+export type MockOrder = { ref: string; date: string; items: { slug: string; name: string; qty: number; price: number }[]; total: number; status: string; eta: string };
+
+export const mockAccount = {
+	name: 'Priya Mehta',
+	email: 'priya@example.com',
+	phone: '+1 234 567 8900',
+	addresses: [
+		{ label: 'Home', detail: '456 Park Avenue, Apt 12B, New York, NY 10016' },
+		{ label: 'Work', detail: '200 Madison Avenue, New York, NY 10016' }
+	],
+	orders: [
+		{ ref: 'SC-2026-1042', date: 'Nov 18, 2026', items: [{ slug: 'chocolate-truffle-cake', name: 'Chocolate Truffle Cake', qty: 1, price: 28 }, { slug: 'cinnamon-rolls', name: 'Cinnamon Rolls', qty: 1, price: 14 }], total: 46.95, status: 'Delivered', eta: 'Delivered Nov 18, 2026' },
+		{ ref: 'SC-2026-1021', date: 'Nov 16, 2026', items: [{ slug: 'blueberry-cheesecake', name: 'Blueberry Cheesecake', qty: 1, price: 24 }, { slug: 'macaron-box', name: 'Macaron Gift Box', qty: 2, price: 22 }], total: 72.95, status: 'Delivered', eta: 'Delivered Nov 17, 2026' },
+		{ ref: 'SC-2026-0987', date: 'Nov 8, 2026', items: [{ slug: 'butter-croissant', name: 'Butter Croissant', qty: 4, price: 6 }], total: 28.95, status: 'Delivered', eta: 'Delivered Nov 8, 2026' }
+	] as MockOrder[]
+};
+
+// ─── Baking classes (mock schedule) ─────────────────────────────────────────
+export type BakingClass = { id: string; title: string; date: string; time: string; duration: string; spots: number; price: number; level: string; image: string; imageAlt: string; detail: string };
+
+export const bakingClasses: BakingClass[] = [
+	{ id: 'croissant-masterclass', title: 'Croissant Masterclass', date: 'Saturday, Nov 29, 2026', time: '9:00 AM – 12:00 PM', duration: '3 hours', spots: 4, price: 85, level: 'All levels', image: 'class-croissant', imageAlt: 'Hands laminating croissant dough on a floured bench', detail: 'Laminate, shape and bake your own croissants — and take a box of six home.' },
+	{ id: 'cake-decorating', title: 'Cake Decorating for Beginners', date: 'Sunday, Nov 30, 2026', time: '2:00 – 5:00 PM', duration: '3 hours', spots: 6, price: 75, level: 'Beginners', image: 'blog-cake-decorating', imageAlt: 'Hands piping buttercream roses onto a cake', detail: 'Crumb coat, smooth finish and buttercream roses — leave with a decorated 6" cake.' },
+	{ id: 'macaron-workshop', title: 'Macaron Workshop', date: 'Saturday, Dec 6, 2026', time: '10:00 AM – 1:00 PM', duration: '3 hours', spots: 2, price: 90, level: 'Intermediate', image: 'product-macaron-box', imageAlt: 'Box of pastel French macarons', detail: 'French meringue, macaronage and ganache — pistachio, raspberry and chocolate.' },
+	{ id: 'kids-bake-day', title: 'Kids’ Bake Day: Cupcakes', date: 'Saturday, Dec 13, 2026', time: '10:00 AM – 12:00 PM', duration: '2 hours', spots: 8, price: 45, level: 'Ages 6–12', image: 'product-chocolate-cupcakes', imageAlt: 'Chocolate cupcakes with swirled buttercream', detail: 'Little bakers decorate their own cupcakes — aprons, sprinkles and all.' }
+];
+
+// ─── Corporate gifting (mock) ───────────────────────────────────────────────
+export const corporateTiers = [
+	{ orders: '10–24 hampers', discount: '5% off', note: 'Branded message cards included.' },
+	{ orders: '25–49 hampers', discount: '10% off', note: 'Branded cards + ribbon in your colours.' },
+	{ orders: '50+ hampers', discount: '15% off', note: 'Dedicated account contact + scheduled delivery.' }
+];
+
+export const corporateHampers = [
+	{ name: 'The Classic Hamper', price: 65, detail: 'Macarons, cookies, a mini fruit cake and a jar of jam.' },
+	{ name: 'The Celebration Hamper', price: 95, detail: 'A 6" celebration cake, macarons, truffles and a bottle of sparkling juice.' },
+	{ name: 'The Coffee Break Box', price: 46, detail: 'Cookies, brownies and macarons — the meeting-friendly box.' }
+];
+
+// ─── Press (mock) ───────────────────────────────────────────────────────────
+export const pressItems = [
+	{ outlet: 'The New York Eater', title: '“The croissant that broke the internet — twice.”', date: 'October 2026' },
+	{ outlet: 'City Bites Magazine', title: '“SweetCrust’s wedding cakes are the city’s worst-kept secret.”', date: 'September 2026' },
+	{ outlet: 'The Morning Crumb', title: '“A neighbourhood bakery doing things the slow way — and winning.”', date: 'August 2026' }
+];
+
+// ─── Chat widget canned answers (mock) ──────────────────────────────────────
+export const chatAnswers = [
+	{ q: 'What are your opening hours?', a: 'We are open Monday to Saturday, 8:00 AM – 8:00 PM. Closed Sundays — the ovens rest, too.' },
+	{ q: 'Do you deliver?', a: 'Yes — delivery within New York City is $4.95, free over $35. Same-day pickup or delivery by 1 PM.' },
+	{ q: 'What allergens should I know about?', a: 'Every product page lists its allergens, and our Allergens page has the full matrix. We bake in a shared kitchen, so please tell us about allergies before you order.' },
+	{ q: 'How do I order a custom cake?', a: 'Visit Custom Cakes — pick a size, flavour and date, and leave a message. Standard cakes need 48 hours; custom designs need 7 days.' },
+	{ q: 'Can I book a tasting?', a: 'Yes! Our Tastings page has Saturday sessions at 10 AM and 12 PM — $80 per couple, deductible from any wedding cake over $600.' }
+];

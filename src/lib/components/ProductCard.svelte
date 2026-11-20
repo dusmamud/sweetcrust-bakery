@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { Check, ShoppingBag } from '@lucide/svelte';
+	import { Check, Heart, ShoppingBag } from '@lucide/svelte';
 	import type { Product } from '#lib/data/site.ts';
 	import { usd } from '#lib/data/site.ts';
 	import { addToCart } from '#lib/cart.svelte.ts';
+	import { toggleWishlist, wishlist } from '#lib/wishlist.svelte.ts';
 	import Picture from './Picture.svelte';
 	import Stars from './Stars.svelte';
 
@@ -31,6 +32,18 @@
 				{product.badge}
 			</span>
 		{/if}
+		<button
+			type="button"
+			onclick={(e) => {
+				e.preventDefault();
+				toggleWishlist(product.slug);
+			}}
+			aria-pressed={wishlist.has(product.slug)}
+			aria-label={wishlist.has(product.slug) ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+			class="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow ring-1 ring-line transition-colors duration-150 {wishlist.has(product.slug) ? 'text-choco' : 'text-muted hover:text-choco'}"
+		>
+			<Heart size={19} aria-hidden="true" fill={wishlist.has(product.slug) ? 'currentColor' : 'none'} />
+		</button>
 	</a>
 	<div class="flex flex-1 flex-col gap-2 p-4 sm:p-5">
 		<a href="/product/{product.slug}" class="min-w-0 font-display text-lg leading-snug font-medium text-ink hover:text-choco">

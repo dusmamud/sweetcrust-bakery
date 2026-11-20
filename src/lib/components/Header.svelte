@@ -114,8 +114,8 @@
 				<Search size={20} aria-hidden="true" />
 			</button>
 			<a
-				href="/track-order"
-				aria-label="Track your order"
+				href="/account"
+				aria-label="Your account"
 				class="hidden h-12 w-12 items-center justify-center rounded-full text-ink transition-colors duration-150 hover:text-choco sm:flex"
 			>
 				<User size={20} aria-hidden="true" />
@@ -154,7 +154,7 @@
 
 	{#if searchOpen}
 		<div class="border-t border-line bg-cream px-4 py-3 sm:px-6">
-			<form role="search" action="/shop" method="get" class="mx-auto flex max-w-2xl items-center gap-2" onsubmit={() => (searchOpen = false)}>
+			<form role="search" action="/search" method="get" class="mx-auto flex max-w-2xl items-center gap-2" onsubmit={() => (searchOpen = false)}>
 				<label for="site-search" class="sr-only">Search cakes and treats</label>
 				<input
 					id="site-search"
@@ -187,7 +187,7 @@
 			{/each}
 			<p class="pt-3 pb-1 text-xs font-bold tracking-wider text-muted uppercase">More from SweetCrust</p>
 			<div class="grid grid-cols-2 gap-x-4">
-				{#each [['Wedding Cakes', '/wedding-cakes'], ['Tastings', '/tastings'], ['Gift Cards', '/gift-cards'], ['Catering', '/catering'], ['Subscriptions', '/subscriptions'], ['Loyalty', '/loyalty'], ['Seasonal', '/seasonal'], ['Cafe Menu', '/cafe-menu'], ['Reviews', '/reviews'], ['Visit Us', '/locations'], ['Delivery & Pickup', '/delivery'], ['Allergens', '/allergens']] as [label, href]}
+				{#each [['My Account', '/account'], ['Wishlist', '/wishlist'], ['Search', '/search'], ['Wedding Cakes', '/wedding-cakes'], ['Tastings', '/tastings'], ['Gift Cards', '/gift-cards'], ['Catering', '/catering'], ['Subscriptions', '/subscriptions'], ['Loyalty', '/loyalty'], ['Seasonal', '/seasonal'], ['Cafe Menu', '/cafe-menu'], ['Baking Classes', '/classes'], ['Corporate Gifting', '/corporate-gifting'], ['Reviews', '/reviews'], ['Visit Us', '/locations'], ['Delivery & Pickup', '/delivery'], ['Allergens', '/allergens'], ['Accessibility', '/accessibility'], ['Press', '/press'], ['Sitemap', '/sitemap']] as [label, href]}
 					<a
 						href={href}
 						class="flex min-h-11 items-center text-sm font-medium text-ink/80"
